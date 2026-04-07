@@ -1,11 +1,3 @@
-#ifndef CFMT_H
-#define CFMT_H
-
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 // to avoid name collisions, #define CFMT_VERBOSE
 #ifdef CFMT_VERBOSE
 #define CFMT_DECORATE(name) CFMT_##name
@@ -23,6 +15,15 @@
 #define emitf               cfmt_decorate(emitf)
 #define print               cfmt_decorate(print)
 #endif
+
+
+#ifndef CFMT_H
+#define CFMT_H
+
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define CFMT_SEG_BUF_LEN  (4096)
 #define CFMT_SPEC_BUF_LEN (256)
@@ -53,6 +54,9 @@ int emitf(const sink s, const char *fmt, ...);
 
 void print(const char *fmt, ...);
 
+#endif
+
+// instantiate the implementation with #define CFMT_IMPL
 #ifdef CFMT_IMPL
 
 formatter FORMATTERS = {};
@@ -159,7 +163,10 @@ void print(const char *fmt, ...) {
   va_end(ap);
 }
 
+#undef CFMT_IMPL
+
 #endif
+
 
 #ifdef CFMT_VERBOSE
 #undef emitf
@@ -175,6 +182,4 @@ void print(const char *fmt, ...) {
 #undef sink
 #undef cfmt_decorate
 #undef CFMT_DECORATE
-#endif
-
 #endif
