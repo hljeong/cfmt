@@ -53,8 +53,6 @@ int emitf(const sink s, const char *fmt, ...);
 
 void print(const char *fmt, ...);
 
-// todo: delete
-#define CFMT_IMPL
 #ifdef CFMT_IMPL
 
 formatter FORMATTERS = {};
