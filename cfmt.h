@@ -65,7 +65,7 @@ enum {
 // so thats a whole load of bullshit im not about to
 // deal with
 int vemitf(const sink s, const char *fmt, va_list ap);
-int emitf (const sink s, const char *fmt, ...);
+int  emitf(const sink s, const char *fmt, ...);
 
 int    print(const char *fmt, ...);
 int   vprint(const char *fmt, va_list ap);
