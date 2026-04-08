@@ -22,22 +22,22 @@ int main() {
 
 ```c
 static int fmt_custom(const sink s, va_list ap) {
-  int n = va_arg(ap, int);
-  char buf[32];
-  snprintf(buf, sizeof(buf), "value=%d", n);
-  return s.emit(s.self, buf);
+  const int n = va_arg(ap, int);
+  const int m = va_arg(ap, int);
+  // see also: vemitf()
+  return emitf(s, "n=%d, m=%d, n+m=%d", n, m, n + m);
 }
 
 int main() {
   add_formatter("custom", fmt_custom);
-  print("result: {custom}", 42);  // prints: result: value=42
+  print("result: {custom}\n", 67, 727);  // prints: result: n=67, m=727, n+m=794
 }
 ```
 
 ## escaped braces
 
 ```c
-print("braces: {{ and }}");  // prints: braces: { and }
+print("braces: {{ and }}\n");  // prints: braces: { and }
 ```
 
 ## verbose mode
