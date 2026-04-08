@@ -53,5 +53,5 @@ to avoid name collisions, define `CFMT_VERBOSE` before including:
 this prefixes all symbols with `cfmt_` (e.g., `cfmt_print`, `cfmt_snprint`)
 
 ## shoutouts
-
+- [tsoding](https://www.youtube.com/@Tsoding): has been showing up on my youtube feed + where i learned about stb from
 - [leaky abstraction](https://github.com/LeakyAbstractions): has nice aesthetic
