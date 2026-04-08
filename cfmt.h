@@ -1,3 +1,5 @@
+// mit license - copyright (c) 2026
+
 // to avoid name collisions, #define CFMT_VERBOSE
 #ifdef CFMT_VERBOSE
 #define CFMT_DECORATE(name) CFMT_##name
