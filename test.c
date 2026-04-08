@@ -6,7 +6,8 @@
 
 static int test_fmt(const sink s, va_list ap) {
   (void) ap;
-  return s.emit(s.self, "custom");
+  s.emit(s.self, "custom");
+  return 6;
 }
 
 int main(void) {

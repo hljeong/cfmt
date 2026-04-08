@@ -37,7 +37,7 @@
 
 typedef struct {
   void *self;
-  int (*emit)(void *self, const char *s);
+  void (*emit)(void *self, const char *s);
 } sink;
 
 typedef struct formatter formatter;
@@ -77,6 +77,7 @@ int vsnprint(char *buf, const size_t size, const char *fmt, va_list ap);
 #endif
 
 // instantiate the implementation with #define CFMT_IMPL
+#define CFMT_IMPL
 #ifdef CFMT_IMPL
 
 formatter FORMATTERS = {0};
@@ -108,34 +109,27 @@ int vemitf(const sink s, const char *fmt, va_list ap) {
         seg_fmt[seg_len] = '\0';
 
         // delegate formatting standard format specifiers to vsnprintf
-        {
-          const int ret = vsnprintf(buf, sizeof(buf), seg_fmt, ap);
-          if (ret < 0) return ret;
-          if ((size_t) ret >= sizeof(buf)) return OVERFLOW;
-        }
-        {
-          const int ret = s.emit(s.self, buf);
-          if (ret < 0) return ret;
-          total_len += ret;
-        }
+        const int ret = vsnprintf(buf, sizeof(buf), seg_fmt, ap);
+        if (ret < 0) return ret;
+        if ((size_t) ret >= sizeof(buf)) return OVERFLOW;
+        s.emit(s.self, buf);
+        total_len += ret;
       }
     }
 
     if (c == '}') {
       // "}}" -> "}"
       if (*fmt++ != '}') return SINGLE_RBRACE;
-      const int ret = s.emit(s.self, "}");
-      if (ret < 0) return ret;
-      total_len += ret;
+       s.emit(s.self, "}");
+      total_len++;
       seg = fmt;
     }
 
     // "{{" -> "{"
     else if (*fmt == '{') {
       fmt++;
-      const int ret = s.emit(s.self, "{");
-      if (ret < 0) return ret;
-      total_len += ret;
+       s.emit(s.self, "{");
+      total_len++;
       seg = fmt;
     }
 
@@ -172,16 +166,11 @@ int vemitf(const sink s, const char *fmt, va_list ap) {
   // emit last segment
   if (*seg) {
     // delegate formatting standard format specifiers to vsnprintf
-    {
-      const int ret = vsnprintf(buf, sizeof(buf), seg, ap);
-      if (ret < 0) return ret;
-      if ((size_t) ret >= sizeof(buf)) return OVERFLOW;
-    }
-    {
-      const int ret = s.emit(s.self, buf);
-      if (ret < 0) return ret;
-      total_len += ret;
-    }
+    const int ret = vsnprintf(buf, sizeof(buf), seg, ap);
+    if (ret < 0) return ret;
+    if ((size_t) ret >= sizeof(buf)) return OVERFLOW;
+    s.emit(s.self, buf);
+    total_len += ret;
   }
 
   return total_len;
@@ -198,23 +187,21 @@ int emitf(const sink s, const char *fmt, ...) {
 typedef struct { FILE *file; } _cfmt_fprint_sink;
 typedef struct { char *buf; size_t n; } _cfmt_snprint_sink;
 
-static int _cfmt_print(void *self, const char *s) {
+static void _cfmt_print(void *self, const char *s) {
   (void) self;
-  return printf("%s", s);
+  printf("%s", s);
 }
 
-static int _cfmt_fprint(void *self, const char *s) {
-  return fprintf(((_cfmt_fprint_sink *) self)->file, "%s", s);
+static void _cfmt_fprint(void *self, const char *s) {
+  fprintf(((_cfmt_fprint_sink *) self)->file, "%s", s);
 }
 
-static int _cfmt_snprint(void *self, const char *s) {
+static void _cfmt_snprint(void *self, const char *s) {
   _cfmt_snprint_sink *sink = self;
   const int ret = snprintf(sink->buf, sink->n, "%s", s);
-  if (ret < 0) return ret;
   const int advance = (size_t) ret >= sink->n ? (int) sink->n : ret;
   sink->buf += advance;
   sink->n -= advance;
-  return ret;
 }
 
 int vprint(const char *fmt, va_list ap) {
