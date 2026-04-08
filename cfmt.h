@@ -77,7 +77,6 @@ int vsnprint(char *buf, const size_t size, const char *fmt, va_list ap);
 #endif
 
 // instantiate the implementation with #define CFMT_IMPL
-#define CFMT_IMPL
 #ifdef CFMT_IMPL
 
 formatter FORMATTERS = {0};
