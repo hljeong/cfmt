@@ -13,8 +13,8 @@
 #define SINGLE_RBRACE       CFMT_DECORATE(SINGLE_RBRACE)
 #define MISSING_RBRACE      CFMT_DECORATE(MISSING_RBRACE)
 #define UNKNOWN_SPEC        CFMT_DECORATE(UNKNOWN_SPEC)
-#define vemitf              cfmt_decorate(vemitf)
 #define emitf               cfmt_decorate(emitf)
+#define vemitf              cfmt_decorate(vemitf)
 #define print               cfmt_decorate(print)
 #define vprint              cfmt_decorate(vprint)
 #define fprint              cfmt_decorate(fprint)
@@ -64,8 +64,8 @@ enum {
 // but vsnprintf only receives the va_list by value,
 // so thats a whole load of bullshit im not about to
 // deal with
-int vemitf(const sink s, const char *fmt, va_list ap);
 int  emitf(const sink s, const char *fmt, ...);
+int vemitf(const sink s, const char *fmt, va_list ap);
 
 int    print(const char *fmt, ...);
 int   vprint(const char *fmt, va_list ap);
@@ -267,8 +267,8 @@ int snprint(char *buf, const size_t n, const char *fmt, ...) {
 #undef fprint
 #undef vprint
 #undef print
-#undef emitf
 #undef vemitf
+#undef emitf
 #undef UNKNOWN_SPEC
 #undef MISSING_RBRACE
 #undef SINGLE_RBRACE
