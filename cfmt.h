@@ -46,14 +46,22 @@ struct formatter {
 };
 
 extern formatter FORMATTERS;
+
+// `spec` must be string literal
 formatter *add_formatter(const char *spec, int (*fmt)(const sink s, va_list));
 
-const int OK             =  0;
-const int OVERFLOW       = -727;
-const int SINGLE_RBRACE  = -728;
-const int MISSING_RBRACE = -729;
-const int UNKNOWN_SPEC   = -730;
+enum {
+  OK             =  0,
+  OVERFLOW       = -727,
+  SINGLE_RBRACE  = -728,
+  MISSING_RBRACE = -729,
+  UNKNOWN_SPEC   = -730,
+};
 
+// supposedly passing va_list by value is not portable
+// but vsnprintf only receives the va_list by value,
+// so thats a whole load of bullshit im not about to
+// deal with
 int vemitf(const sink s, const char *fmt, va_list ap);
 int emitf (const sink s, const char *fmt, ...);
 
@@ -67,10 +75,9 @@ int vsnprint(char *buf, const size_t size, const char *fmt, va_list ap);
 #endif
 
 // instantiate the implementation with #define CFMT_IMPL
-#define CFMT_IMPL
 #ifdef CFMT_IMPL
 
-formatter FORMATTERS = {};
+formatter FORMATTERS = {0};
 
 formatter *add_formatter(const char *spec, int (*fmt)(const sink s, va_list)) {
   formatter *f = calloc(1, sizeof(formatter));
@@ -92,17 +99,23 @@ int vemitf(const sink s, const char *fmt, va_list ap) {
     // emit current segment up to right before `c`
     {
       char seg_fmt[CFMT_SEG_BUF_LEN];
-      const int seg_len = (fmt - 1) - seg;
+      const size_t seg_len = (fmt - 1) - seg;
       if (seg_len) {
         if (seg_len >= sizeof(seg_fmt)) return OVERFLOW;
         memcpy(seg_fmt, seg, seg_len);
         seg_fmt[seg_len] = '\0';
 
-        const int len = vsnprintf(buf, sizeof(buf), seg_fmt, ap);
-        if (len >= sizeof(buf)) return OVERFLOW;
-        const int ret = s.emit(s.self, buf);
-        if (ret < 0) return ret;
-        total_len += ret;
+        // delegate formatting standard format specifiers to vsnprintf
+        {
+          const int ret = vsnprintf(buf, sizeof(buf), seg_fmt, ap);
+          if (ret < 0) return ret;
+          if ((size_t) ret >= sizeof(buf)) return OVERFLOW;
+        }
+        {
+          const int ret = s.emit(s.self, buf);
+          if (ret < 0) return ret;
+          total_len += ret;
+        }
       }
     }
 
@@ -131,7 +144,7 @@ int vemitf(const sink s, const char *fmt, va_list ap) {
       const char *spec_start = fmt;
       while (*fmt && *fmt != '}') fmt++;
       if (*fmt != '}') return MISSING_RBRACE;
-      const int spec_len = fmt - spec_start;
+      const size_t spec_len = fmt - spec_start;
       if (spec_len >= sizeof(spec_buf)) return OVERFLOW;
       memcpy(spec_buf, spec_start, spec_len);
       spec_buf[spec_len] = '\0';
@@ -156,11 +169,17 @@ int vemitf(const sink s, const char *fmt, va_list ap) {
 
   // emit last segment
   if (*seg) {
-    const int len = vsnprintf(buf, sizeof(buf), seg, ap);
-    if (len >= sizeof(buf)) return OVERFLOW;
-    const int ret = s.emit(s.self, buf);
-    if (ret < 0) return ret;
-    total_len += ret;
+    // delegate formatting standard format specifiers to vsnprintf
+    {
+      const int ret = vsnprintf(buf, sizeof(buf), seg, ap);
+      if (ret < 0) return ret;
+      if ((size_t) ret >= sizeof(buf)) return OVERFLOW;
+    }
+    {
+      const int ret = s.emit(s.self, buf);
+      if (ret < 0) return ret;
+      total_len += ret;
+    }
   }
 
   return total_len;
@@ -178,6 +197,7 @@ typedef struct { FILE *file; } _cfmt_fprint_sink;
 typedef struct { char *buf; size_t n; } _cfmt_snprint_sink;
 
 static int _cfmt_print(void *self, const char *s) {
+  (void) self;
   return printf("%s", s);
 }
 
@@ -189,7 +209,7 @@ static int _cfmt_snprint(void *self, const char *s) {
   _cfmt_snprint_sink *sink = self;
   const int ret = snprintf(sink->buf, sink->n, "%s", s);
   if (ret < 0) return ret;
-  const int advance = ret >= sink->n ? sink->n : ret;
+  const int advance = (size_t) ret >= sink->n ? (int) sink->n : ret;
   sink->buf += advance;
   sink->n -= advance;
   return ret;
@@ -228,7 +248,7 @@ int vsnprint(char *buf, const size_t n, const char *fmt, va_list ap) {
 int snprint(char *buf, const size_t n, const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  const int ret = vsnprintf(buf, n, fmt, ap);
+  const int ret = vsnprint(buf, n, fmt, ap);
   va_end(ap);
   return ret;
 }
@@ -238,6 +258,7 @@ int snprint(char *buf, const size_t n, const char *fmt, ...) {
 #endif
 
 
+// undefs are not guarded to avoid inconsistencies
 #undef vsnprint
 #undef snprint
 #undef vfprint
