@@ -72,7 +72,10 @@ formatter *add_formatter(const char *spec, void (*fmt)(const sink s, va_list)) {
 int vemitf(const sink s, const char *fmt, va_list ap) {
   const char *seg = fmt;
   while (*fmt) {
+    char buf[CFMT_SEG_BUF_LEN];
+
     const char c = *fmt++;
+    if (c != '{' && c != '}') continue;
 
     // "}}" -> "}"
     if (c == '}') {
@@ -80,61 +83,60 @@ int vemitf(const sink s, const char *fmt, va_list ap) {
       s.emit(s.self, "}");
     }
 
-    else if (c == '{') {
-      //  "{{" -> "{"
-      if (*fmt == '{') {
-        s.emit(s.self, "{");
-        fmt++;
+    // emit current segment up to right before `c`
+    {
+      char seg_fmt[CFMT_SEG_BUF_LEN];
+      const int seg_len = (fmt - 1) - seg;
+      if (seg_len) {
+        if (seg_len >= sizeof(seg_fmt)) return OVERFLOW;
+        memcpy(seg_fmt, seg, seg_len);
+        seg_fmt[seg_len] = '\0';
+
+        const int len = vsnprintf(buf, sizeof(buf), seg_fmt, ap);
+        if (len >= sizeof(buf)) return OVERFLOW;
+        s.emit(s.self, buf);
       }
+    }
 
-      else {
-        char buf[CFMT_SEG_BUF_LEN];
+    if (c == '}') {
+      // "}}" -> "}"
+      if (*fmt++ != '}') return SINGLE_RBRACE;
+      s.emit(s.self, "}");
+      seg = fmt;
+    }
 
-        // emit current segment up to right before '{'
-        {
-          const int seg_len = (fmt - 1) - seg;
-          if (seg_len >= sizeof(buf)) return OVERFLOW;
-          memcpy(buf, seg, seg_len);
-          buf[seg_len] = '\0';
-          s.emit(s.self, buf);
+    // "{{" -> "{"
+    else if (*fmt == '{') {
+      fmt++;
+      s.emit(s.self, "{");
+      seg = fmt;
+    }
+
+    // custom formatter
+    else {
+      // parse format specifier
+      char spec_buf[CFMT_SPEC_BUF_LEN];
+      const char *spec_start = fmt;
+      while (*fmt && *fmt != '}') fmt++;
+      if (*fmt != '}') return MISSING_RBRACE;
+      const int spec_len = fmt - spec_start;
+      if (spec_len >= sizeof(spec_buf)) return OVERFLOW;
+      memcpy(spec_buf, spec_start, spec_len);
+      spec_buf[spec_len] = '\0';
+      fmt++;
+
+      // dispatch formatter
+      formatter *f = FORMATTERS.next;
+      while (f) {
+        if (!strcmp(spec_buf, f->spec)) {
+          f->fmt(s, ap);
+          break;
         }
-
-        // process interpolation
-        {
-          // parse format specifier
-          char spec_buf[CFMT_SPEC_BUF_LEN];
-          const char *spec_start = fmt;
-          while (*fmt && *fmt != '}') fmt++;
-          if (*fmt != '}') return MISSING_RBRACE;
-          const int spec_len = fmt - spec_start;
-          if (spec_len >= sizeof(spec_buf)) return OVERFLOW;
-          memcpy(spec_buf, spec_start, spec_len);
-          spec_buf[spec_len] = '\0';
-          fmt++;
-
-          // built-in specifier (could not be bothered to implement)
-          if (spec_buf[0] == '%') {
-            const int len = vsnprintf(buf, sizeof(buf), spec_buf, ap);
-            if (len >= sizeof(buf)) return OVERFLOW;
-            s.emit(s.self, buf);
-          }
-
-          // custom specifier
-          else {
-            formatter *f = FORMATTERS.next;
-            while (f) {
-              if (!strcmp(spec_buf, f->spec)) {
-                f->fmt(s, ap);
-                break;
-              }
-              f = f->next;
-            }
-            if (!f) return UNKNOWN_SPEC;
-          }
-
-          seg = fmt;
-        }
+        f = f->next;
       }
+      if (!f) return UNKNOWN_SPEC;
+
+      seg = fmt;
     }
   }
 
@@ -168,7 +170,6 @@ void print(const char *fmt, ...) {
 #endif
 
 
-#ifdef CFMT_VERBOSE
 #undef emitf
 #undef vemitf
 #undef UNKNOWN_SPEC
@@ -182,4 +183,3 @@ void print(const char *fmt, ...) {
 #undef sink
 #undef cfmt_decorate
 #undef CFMT_DECORATE
-#endif
