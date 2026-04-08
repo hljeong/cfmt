@@ -70,18 +70,12 @@ formatter *add_formatter(const char *spec, void (*fmt)(const sink s, va_list)) {
 }
 
 int vemitf(const sink s, const char *fmt, va_list ap) {
+  char buf[CFMT_SEG_BUF_LEN];
+
   const char *seg = fmt;
   while (*fmt) {
-    char buf[CFMT_SEG_BUF_LEN];
-
     const char c = *fmt++;
     if (c != '{' && c != '}') continue;
-
-    // "}}" -> "}"
-    if (c == '}') {
-      if (*fmt++ != '}') return SINGLE_RBRACE;
-      s.emit(s.self, "}");
-    }
 
     // emit current segment up to right before `c`
     {
@@ -141,7 +135,11 @@ int vemitf(const sink s, const char *fmt, va_list ap) {
   }
 
   // emit last segment
-  if (*seg) s.emit(s.self, seg);
+  if (*seg) {
+    const int len = vsnprintf(buf, sizeof(buf), seg, ap);
+    if (len >= sizeof(buf)) return OVERFLOW;
+    s.emit(s.self, buf);
+  }
 
   return 0;
 }
