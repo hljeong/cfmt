@@ -52,6 +52,7 @@ str_view b = sv_create("world", 5);
 
 sv_cmp(a, b);          // compare two views
 sv_cmp_s(a, "hello");  // compare view to c string
+print("{sv}\n", a);    // formatter included
 ```
 
 ## str_builder
