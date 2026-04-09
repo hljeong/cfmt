@@ -1,6 +1,6 @@
 # cfmt
 
-format strings in c. supports custom formatters. passes `va_list` by value, so probably not portable. works on my computer though
+format strings in c. supports custom formatters. passes `va_list` by value, so probably not portable. works on my computer tho
 
 ## usage
 
@@ -42,4 +42,4 @@ print("braces: {{ and }}\n");  // prints: braces: { and }
 
 ## shoutouts
 - [tsoding](https://www.youtube.com/@Tsoding): has been showing up on my youtube feed + where i learned about stb from
-- [leaky abstraction](https://github.com/LeakyAbstractions): has nice aesthetic
+- [leaky abstractions](https://github.com/LeakyAbstractions): has nice aesthetic
