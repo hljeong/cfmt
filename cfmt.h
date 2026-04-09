@@ -1,29 +1,5 @@
 // mit license - copyright (c) 2026
 
-// to avoid name collisions, #define CFMT_VERBOSE
-#ifdef CFMT_VERBOSE
-#define CFMT_DECORATE(name) CFMT_##name
-#define cfmt_decorate(name) cfmt_##name
-#define sink                cfmt_decorate(sink)
-#define formatter           cfmt_decorate(formatter)
-#define FORMATTERS          CFMT_DECORATE(FORMATTERS)
-#define add_formatter       cfmt_decorate(add_formatter)
-#define OK                  CFMT_DECORATE(OK)
-#define OVERFLOW            CFMT_DECORATE(OVERFLOW)
-#define SINGLE_RBRACE       CFMT_DECORATE(SINGLE_RBRACE)
-#define MISSING_RBRACE      CFMT_DECORATE(MISSING_RBRACE)
-#define UNKNOWN_SPEC        CFMT_DECORATE(UNKNOWN_SPEC)
-#define emitf               cfmt_decorate(emitf)
-#define vemitf              cfmt_decorate(vemitf)
-#define print               cfmt_decorate(print)
-#define vprint              cfmt_decorate(vprint)
-#define fprint              cfmt_decorate(fprint)
-#define vfprint             cfmt_decorate(vfprint)
-#define snprint             cfmt_decorate(snprint)
-#define vsnprint            cfmt_decorate(vsnprint)
-#endif
-
-
 #ifndef CFMT_H
 #define CFMT_H
 
@@ -244,25 +220,3 @@ int snprint(char *buf, const size_t n, const char *fmt, ...) {
 #undef CFMT_IMPL
 
 #endif
-
-
-// undefs are not guarded to avoid inconsistencies
-#undef vsnprint
-#undef snprint
-#undef vfprint
-#undef fprint
-#undef vprint
-#undef print
-#undef vemitf
-#undef emitf
-#undef UNKNOWN_SPEC
-#undef MISSING_RBRACE
-#undef SINGLE_RBRACE
-#undef OVERFLOW
-#undef OK
-#undef add_formatter
-#undef FORMATTERS
-#undef formatter
-#undef sink
-#undef cfmt_decorate
-#undef CFMT_DECORATE
