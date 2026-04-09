@@ -2,6 +2,8 @@
 
 format strings in c. supports custom formatters. passes `va_list` by value, so probably not portable. works on my computer tho
 
+`str_view` and `str_builder` included gratis
+
 ## usage
 
 single-header technique inspired by [stb](https://github.com/nothings/stb)
@@ -65,9 +67,5 @@ sb_free(&sb);
 ```
 
 ## shoutouts
-
 - [tsoding](https://www.youtube.com/@Tsoding): has been showing up on my youtube feed + where i learned about stb from
 - [leaky abstractions](https://github.com/LeakyAbstractions): has nice aesthetic
-
-## see also
-- [cstr](https://github.com/hljeong/cstr)
