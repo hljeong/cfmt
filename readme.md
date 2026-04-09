@@ -40,6 +40,30 @@ int main() {
 print("braces: {{ and }}\n");  // prints: braces: { and }
 ```
 
+## str_view
+
+non-owning string reference. just a pointer and a length, no heap allocation
+
+```c
+str_view a = sv_create("hello", 5);
+str_view b = sv_create("world", 5);
+
+sv_cmp(a, b);          // compare two views
+sv_cmp_s(a, "hello");  // compare view to c string
+```
+
+## str_builder
+
+growable string buffer. allocates on the heap
+
+```c
+str_builder sb = sb_create(16);  // start with 16 bytes
+sb_append(&sb, "hello ");
+sb_append(&sb, "%s %d", "world", 42);
+// sb.buf now contains "hello world 42"
+sb_free(&sb);
+```
+
 ## shoutouts
 
 - [tsoding](https://www.youtube.com/@Tsoding): has been showing up on my youtube feed + where i learned about stb from

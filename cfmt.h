@@ -50,12 +50,33 @@ int  vfprint(FILE *file, const char *fmt, va_list ap);
 int  snprint(char *buf, const size_t size, const char *fmt, ...);
 int vsnprint(char *buf, const size_t size, const char *fmt, va_list ap);
 
+
+typedef struct {
+  const char *loc;
+  int len;
+} str_view;
+
+str_view    sv_create(const char *loc, const int len);
+const char *sv_end   (const str_view s);
+int         sv_cmp   (const str_view s, const str_view t);
+int         sv_cmp_s (const str_view s, const char *t);
+
+
+typedef struct {
+  char *buf;
+  int capacity;
+  int size;
+} str_builder;
+
+str_builder sb_create  (int capacity);
+void        sb_free    (str_builder *self);
+void        sb_append  (str_builder *self, const char *fmt, ...);
+void        sb_truncate(str_builder *self, const int to);
+
 #endif
 
 // instantiate the implementation with #define CFMT_IMPL
 #ifdef CFMT_IMPL
-
-formatter FORMATTERS = {0};
 
 formatter *add_formatter(const char *spec, int (*fmt)(const sink s, va_list)) {
   formatter *f = calloc(1, sizeof(formatter));
@@ -167,18 +188,6 @@ static void _cfmt_print(void *self, const char *s) {
   printf("%s", s);
 }
 
-static void _cfmt_fprint(void *self, const char *s) {
-  fprintf(((_cfmt_fprint_sink *) self)->file, "%s", s);
-}
-
-static void _cfmt_snprint(void *self, const char *s) {
-  _cfmt_snprint_sink *sink = self;
-  const int ret = snprintf(sink->buf, sink->n, "%s", s);
-  const int advance = (size_t) ret >= sink->n ? (int) sink->n : ret;
-  sink->buf += advance;
-  sink->n -= advance;
-}
-
 int vprint(const char *fmt, va_list ap) {
   return vemitf((sink) { .emit = _cfmt_print }, fmt, ap);
 }
@@ -189,6 +198,10 @@ int print(const char *fmt, ...) {
   const int ret = vprint(fmt, ap);
   va_end(ap);
   return ret;
+}
+
+static void _cfmt_fprint(void *self, const char *s) {
+  fprintf(((_cfmt_fprint_sink *) self)->file, "%s", s);
 }
 
 int vfprint(FILE *file, const char *fmt, va_list ap) {
@@ -204,6 +217,14 @@ int fprint(FILE *file, const char *fmt, ...) {
   return ret;
 }
 
+static void _cfmt_snprint(void *self, const char *s) {
+  _cfmt_snprint_sink *sink = self;
+  const int ret = snprintf(sink->buf, sink->n, "%s", s);
+  const int advance = (size_t) ret >= sink->n ? (int) sink->n : ret;
+  sink->buf += advance;
+  sink->n -= advance;
+}
+
 int vsnprint(char *buf, const size_t n, const char *fmt, va_list ap) {
   _cfmt_snprint_sink s = { .buf = buf, .n = n };
   return vemitf((sink) { .self = &s, .emit = _cfmt_snprint }, fmt, ap);
@@ -216,6 +237,81 @@ int snprint(char *buf, const size_t n, const char *fmt, ...) {
   va_end(ap);
   return ret;
 }
+
+
+static int _cfmt_fmt_sv(const sink s, va_list ap) {
+  const str_view sv = va_arg(ap, str_view);
+  return emitf(s, "%.*s", sv.len, sv.loc);
+}
+
+formatter _cfmt_sv_formatter = { .spec = "sv", .fmt = _cfmt_fmt_sv };
+
+str_view sv_create(const char *loc, const int len) {
+  return (str_view) { .loc = loc, .len = len };
+}
+
+const char *sv_end(const str_view s) {
+  return s.loc + s.len;
+}
+
+int sv_cmp(const str_view s, const str_view t) {
+  const int min_len = s.len < t.len ? s.len : t.len;
+  const int cmp = strncmp(s.loc, t.loc, min_len);
+  return cmp ? cmp : (s.len - t.len);
+}
+
+int sv_cmp_s(const str_view s, const char *t) {
+  return sv_cmp(s, sv_create(t, strlen(t)));
+}
+
+
+str_builder sb_create(int capacity) {
+  return (str_builder) {
+    .buf = calloc(capacity, sizeof(char)),
+    .capacity = capacity,
+    .size = 0,
+  };
+}
+
+void sb_free(str_builder *self) {
+  free(self->buf);
+}
+
+static void _cfmt_sb_append(void *self, const char *s) {
+  str_builder *sb = self;
+  const int s_len = strlen(s);
+  // make sure to leave space for null terminator
+  const int end_size = sb->size + s_len + 1;
+  if (end_size > sb->capacity) {
+    int new_capacity = sb->capacity;
+    while (end_size > new_capacity)
+      new_capacity = new_capacity * 3 / 2;
+    char *new_buf = realloc(sb->buf, new_capacity * sizeof(char));
+    if (!new_buf) {
+      free(sb->buf);
+      fprint(stderr, "failed to grow to %d bytes", end_size);
+      exit(1);
+    }
+    sb->buf = new_buf;
+    sb->capacity = new_capacity;
+  }
+  // include null terminator
+  memcpy(sb->buf + sb->size, s, s_len + 1);
+  sb->size += s_len;
+}
+
+void sb_append(str_builder *self, const char *fmt, ...) {
+  va_list ap; va_start(ap, fmt);
+  vemitf((sink) { .self = self, .emit = _cfmt_sb_append }, fmt, ap);
+}
+
+void sb_truncate(str_builder *sb, int to) {
+  if (to > sb->size) return;
+  sb->buf[sb->size = to] = '\0';
+}
+
+
+formatter FORMATTERS = { .next = &_cfmt_sv_formatter };
 
 #undef CFMT_IMPL
 
