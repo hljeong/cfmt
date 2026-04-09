@@ -41,5 +41,9 @@ print("braces: {{ and }}\n");  // prints: braces: { and }
 ```
 
 ## shoutouts
+
 - [tsoding](https://www.youtube.com/@Tsoding): has been showing up on my youtube feed + where i learned about stb from
 - [leaky abstractions](https://github.com/LeakyAbstractions): has nice aesthetic
+
+## see also
+- [cstr](https://github.com/hljeong/cstr)
